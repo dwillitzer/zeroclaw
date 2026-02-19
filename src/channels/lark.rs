@@ -459,6 +459,7 @@ impl LarkChannel {
                             .duration_since(std::time::UNIX_EPOCH)
                             .unwrap_or_default()
                             .as_secs(),
+                        thread_ts: None,
                     };
 
                     tracing::debug!("Lark WS: message in {}", lark_msg.chat_id);
@@ -620,6 +621,7 @@ impl LarkChannel {
             content: text,
             channel: "lark".to_string(),
             timestamp,
+            thread_ts: None,
         });
 
         messages
