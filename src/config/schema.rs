@@ -217,6 +217,10 @@ pub struct Config {
     /// Voice transcription configuration (Whisper API via Groq).
     #[serde(default)]
     pub transcription: TranscriptionConfig,
+
+    /// External MCP server connections (`[mcp]`).
+    #[serde(default)]
+    pub mcp: McpConfig,
 }
 
 /// Named provider profile definition compatible with Codex app-server style config.
@@ -3579,6 +3583,63 @@ pub fn default_nostr_relays() -> Vec<String> {
     ]
 }
 
+// ── MCP client ───────────────────────────────────────────────────
+
+/// MCP transport type for connecting to servers.
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, Default, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum McpTransport {
+    /// Spawn local process, communicate via stdin/stdout (default)
+    #[default]
+    Stdio,
+    /// HTTP with Server-Sent Events for streaming responses
+    Sse,
+    /// HTTP POST for requests, HTTP response for replies
+    Http,
+}
+
+/// Configuration for a single external MCP server.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct McpServerConfig {
+    /// Display name — used as prefix in tool names: `<name>__<tool>`.
+    pub name: String,
+    /// Transport type: "stdio" (default), "sse", or "http".
+    #[serde(default)]
+    pub transport: McpTransport,
+    /// URL for SSE/HTTP transports (e.g. "http://localhost:8080/mcp").
+    /// Required for non-stdio transports.
+    #[serde(default)]
+    pub url: Option<String>,
+    /// Executable to spawn for stdio transport (e.g. `"npx"`, `"python"`).
+    /// Ignored for SSE/HTTP transports.
+    #[serde(default)]
+    pub command: String,
+    /// Arguments passed to the executable (stdio only).
+    #[serde(default)]
+    pub args: Vec<String>,
+    /// Optional environment variables for the spawned process (stdio only).
+    #[serde(default)]
+    pub env: std::collections::HashMap<String, String>,
+    /// Per-server foreground tool call timeout (seconds).
+    /// Default: 180s if unset. Maximum allowed: 600s (hard cap applied).
+    #[serde(default)]
+    pub tool_timeout_secs: Option<u64>,
+    /// Optional headers for SSE/HTTP transports.
+    #[serde(default)]
+    pub headers: std::collections::HashMap<String, String>,
+}
+
+/// MCP client configuration (`[mcp]` section in TOML).
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct McpConfig {
+    /// Set to `true` to enable MCP client support at startup.
+    #[serde(default)]
+    pub enabled: bool,
+    /// MCP servers to connect to.
+    #[serde(default)]
+    pub servers: Vec<McpServerConfig>,
+}
+
 // ── Config impl ──────────────────────────────────────────────────
 
 impl Default for Config {
@@ -3629,6 +3690,7 @@ impl Default for Config {
             hardware: HardwareConfig::default(),
             query_classification: QueryClassificationConfig::default(),
             transcription: TranscriptionConfig::default(),
+            mcp: McpConfig::default(),
         }
     }
 }
@@ -7643,5 +7705,72 @@ require_otp_to_resume = true
             .validate()
             .expect_err("expected ttl validation failure");
         assert!(err.to_string().contains("token_ttl_secs"));
+    }
+
+    // ── MCP config ───────────────────────────────────────────────
+
+    #[test]
+    async fn mcp_config_defaults_to_disabled() {
+        // Old configs without [mcp] section must still parse
+        let toml_str = r#"
+workspace_dir = "/tmp/workspace"
+config_path = "/tmp/config.toml"
+default_temperature = 0.7
+"#;
+        let config: Config = toml::from_str(toml_str).expect("should parse without mcp section");
+        assert!(!config.mcp.enabled);
+        assert!(config.mcp.servers.is_empty());
+    }
+
+    #[test]
+    async fn mcp_config_parses_servers() {
+        let toml_str = r#"
+workspace_dir = "/tmp/workspace"
+config_path = "/tmp/config.toml"
+default_temperature = 0.7
+
+[mcp]
+enabled = true
+
+[[mcp.servers]]
+name = "filesystem"
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]
+"#;
+        let config: Config = toml::from_str(toml_str).expect("should parse with mcp section");
+        assert!(config.mcp.enabled);
+        assert_eq!(config.mcp.servers.len(), 1);
+        assert_eq!(config.mcp.servers[0].name, "filesystem");
+        assert_eq!(config.mcp.servers[0].command, "npx");
+        assert_eq!(
+            config.mcp.servers[0].args,
+            vec!["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]
+        );
+    }
+
+    #[test]
+    async fn mcp_config_parses_http_transport() {
+        let toml_str = r#"
+workspace_dir = "/tmp/workspace"
+config_path = "/tmp/config.toml"
+default_temperature = 0.7
+
+[mcp]
+enabled = true
+
+[[mcp.servers]]
+name = "slack"
+transport = "sse"
+url = "https://mcp.slack.com/mcp"
+[mcp.servers.headers]
+Authorization = "Bearer xoxb-test"
+"#;
+        let config: Config = toml::from_str(toml_str).expect("should parse sse transport");
+        assert!(config.mcp.enabled);
+        assert_eq!(config.mcp.servers[0].transport, McpTransport::Sse);
+        assert_eq!(
+            config.mcp.servers[0].url.as_deref(),
+            Some("https://mcp.slack.com/mcp")
+        );
     }
 }
