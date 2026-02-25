@@ -7706,4 +7706,75 @@ require_otp_to_resume = true
             .expect_err("expected ttl validation failure");
         assert!(err.to_string().contains("token_ttl_secs"));
     }
+
+    // ── MCP config ───────────────────────────────────────────────
+
+    #[test]
+    async fn mcp_config_defaults_to_disabled() {
+        // Old configs without [mcp] section must still parse
+        let toml_str = r#"
+workspace_dir = "/tmp/workspace"
+config_path = "/tmp/config.toml"
+default_temperature = 0.7
+"#;
+        let config: Config = toml::from_str(toml_str).expect("should parse without mcp section");
+        assert!(!config.mcp.enabled);
+        assert!(config.mcp.servers.is_empty());
+    }
+
+    #[test]
+    async fn mcp_config_parses_servers() {
+        let toml_str = r#"
+workspace_dir = "/tmp/workspace"
+config_path = "/tmp/config.toml"
+default_temperature = 0.7
+
+[mcp]
+enabled = true
+
+[[mcp.servers]]
+name = "filesystem"
+command = "bunx"
+args = ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]
+"#;
+        let config: Config = toml::from_str(toml_str).expect("should parse with mcp section");
+        assert!(config.mcp.enabled);
+        assert_eq!(config.mcp.servers.len(), 1);
+        assert_eq!(config.mcp.servers[0].name, "filesystem");
+        assert_eq!(config.mcp.servers[0].command, "bunx");
+        assert_eq!(
+            config.mcp.servers[0].args,
+            vec!["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]
+        );
+    }
+
+    #[test]
+    async fn mcp_config_parses_sse_transport() {
+        let toml_str = r#"
+workspace_dir = "/tmp/workspace"
+config_path = "/tmp/config.toml"
+default_temperature = 0.7
+
+[mcp]
+enabled = true
+
+[[mcp.servers]]
+name = "slack"
+transport = "sse"
+url = "https://mcp.slack.com/mcp"
+[mcp.servers.headers]
+Authorization = "Bearer xoxb-test"
+"#;
+        let config: Config = toml::from_str(toml_str).expect("should parse sse transport");
+        assert!(config.mcp.enabled);
+        assert_eq!(config.mcp.servers[0].transport, McpTransport::Sse);
+        assert_eq!(
+            config.mcp.servers[0].url.as_deref(),
+            Some("https://mcp.slack.com/mcp")
+        );
+        assert_eq!(
+            config.mcp.servers[0].headers.get("Authorization").map(|s| s.as_str()),
+            Some("Bearer xoxb-test")
+        );
+    }
 }

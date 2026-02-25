@@ -629,6 +629,59 @@ Notes:
 - Place `.md`/`.txt` datasheet files named by board (e.g. `nucleo-f401re.md`, `rpi-gpio.md`) in `datasheet_dir` for RAG retrieval.
 - See [hardware-peripherals-design.md](hardware-peripherals-design.md) for board protocol and firmware notes.
 
+## `[mcp]`
+
+MCP (Model Context Protocol) client — connect zeroclaw to external MCP servers and expose their tools alongside built-in tools.
+
+| Key | Default | Description |
+|---|---|---|
+| `enabled` | `false` | Enable MCP client at daemon startup |
+| `servers` | `[]` | List of MCP server configs (see below) |
+
+### `[[mcp.servers]]`
+
+| Key | Default | Description |
+|---|---|---|
+| `name` | _required_ | Server name; used as tool prefix: `<name>__<tool>` |
+| `transport` | `"stdio"` | Transport type: `"stdio"`, `"http"`, or `"sse"` |
+| `command` | `""` | Executable to spawn (stdio only, e.g. `"bunx"`, `"python"`) |
+| `args` | `[]` | Arguments for the executable (stdio only) |
+| `env` | `{}` | Environment variables for the spawned process (stdio only) |
+| `url` | unset | Server URL for http/sse transports |
+| `headers` | `{}` | HTTP headers for http/sse transports (e.g. `Authorization`) |
+| `tool_timeout_secs` | `180` | Per-server tool call timeout in seconds (max 600) |
+
+**Stdio (local child process):**
+
+```toml
+[mcp]
+enabled = true
+
+[[mcp.servers]]
+name = "filesystem"
+command = "bunx"
+args = ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]
+```
+
+**HTTP/SSE (remote server):**
+
+```toml
+[[mcp.servers]]
+name = "slack"
+transport = "sse"
+url = "https://mcp.slack.com/mcp"
+[mcp.servers.headers]
+Authorization = "Bearer xoxb-..."
+```
+
+Tools from MCP servers appear as `{server_name}__{tool_name}` (e.g. `filesystem__read_file`, `slack__list_channels`).
+
+Notes:
+
+- Daemon startup connects to all enabled MCP servers and registers their tools into the runtime tool registry.
+- If an MCP server exits after startup, its tools are unavailable until the daemon restarts; reconnection is a follow-up feature.
+- SSE transport is currently synchronous (HTTP POST per call); persistent event-stream support is tracked separately.
+
 ## Security-Relevant Defaults
 
 - deny-by-default channel allowlists (`[]` means deny all)
