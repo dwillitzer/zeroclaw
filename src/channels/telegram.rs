@@ -432,7 +432,13 @@ fn parse_attachment_markers(message: &str) -> (String, Vec<TelegramAttachment>) 
         });
 
         if let Some(attachment) = parsed {
-            attachments.push(attachment);
+            // Skip duplicate targets — LLM sometimes emits the same marker twice in one reply.
+            if !attachments
+                .iter()
+                .any(|a: &TelegramAttachment| a.target == attachment.target)
+            {
+                attachments.push(attachment);
+            }
         } else {
             cleaned.push_str(&message[open..=close]);
         }
