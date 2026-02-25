@@ -217,6 +217,10 @@ pub struct Config {
     /// Voice transcription configuration (Whisper API via Groq).
     #[serde(default)]
     pub transcription: TranscriptionConfig,
+
+    /// External MCP server connections (`[mcp]`).
+    #[serde(default)]
+    pub mcp: McpConfig,
 }
 
 /// Named provider profile definition compatible with Codex app-server style config.
@@ -390,6 +394,61 @@ impl Default for TranscriptionConfig {
             max_duration_secs: default_transcription_max_duration_secs(),
         }
     }
+}
+
+/// Transport type for MCP server connections.
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum McpTransport {
+    /// Spawn a local process and communicate over stdin/stdout (default).
+    #[default]
+    Stdio,
+    /// Connect via HTTP POST (stateless request/response).
+    Http,
+    /// Connect via HTTP POST + Server-Sent Events.
+    Sse,
+}
+
+/// Configuration for a single external MCP server.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct McpServerConfig {
+    /// Display name — used as prefix in tool names: `<name>__<tool>`.
+    pub name: String,
+    /// Transport type: "stdio" (default), "sse", or "http".
+    #[serde(default)]
+    pub transport: McpTransport,
+    /// URL for SSE/HTTP transports (e.g. "http://localhost:8080/mcp").
+    /// Required for non-stdio transports.
+    #[serde(default)]
+    pub url: Option<String>,
+    /// Executable to spawn for stdio transport (e.g. `"npx"`, `"python"`).
+    /// Ignored for SSE/HTTP transports.
+    #[serde(default)]
+    pub command: String,
+    /// Arguments passed to the executable (stdio only).
+    #[serde(default)]
+    pub args: Vec<String>,
+    /// Optional environment variables for the spawned process (stdio only).
+    #[serde(default)]
+    pub env: std::collections::HashMap<String, String>,
+    /// Per-server foreground tool call timeout (seconds).
+    /// Default: 180s if unset. Maximum allowed: 600s (hard cap applied).
+    #[serde(default)]
+    pub tool_timeout_secs: Option<u64>,
+    /// Optional headers for SSE/HTTP transports.
+    #[serde(default)]
+    pub headers: std::collections::HashMap<String, String>,
+}
+
+/// MCP client configuration (`[mcp]` section in TOML).
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct McpConfig {
+    /// Set to `true` to enable MCP client support at startup.
+    #[serde(default)]
+    pub enabled: bool,
+    /// MCP servers to connect to.
+    #[serde(default)]
+    pub servers: Vec<McpServerConfig>,
 }
 
 /// Agent orchestration configuration (`[agent]` section).
@@ -3629,6 +3688,7 @@ impl Default for Config {
             hardware: HardwareConfig::default(),
             query_classification: QueryClassificationConfig::default(),
             transcription: TranscriptionConfig::default(),
+            mcp: McpConfig::default(),
         }
     }
 }
@@ -5161,6 +5221,7 @@ default_temperature = 0.7
             hooks: HooksConfig::default(),
             hardware: HardwareConfig::default(),
             transcription: TranscriptionConfig::default(),
+            mcp: McpConfig::default(),
         };
 
         let toml_str = toml::to_string_pretty(&config).unwrap();
@@ -5343,6 +5404,7 @@ tool_dispatcher = "xml"
             hooks: HooksConfig::default(),
             hardware: HardwareConfig::default(),
             transcription: TranscriptionConfig::default(),
+            mcp: McpConfig::default(),
         };
 
         config.save().await.unwrap();

@@ -52,6 +52,10 @@ pub mod schema;
 pub mod screenshot;
 pub mod shell;
 pub mod traits;
+pub mod mcp_client;
+pub mod mcp_protocol;
+pub mod mcp_tool;
+pub mod mcp_transport;
 pub mod web_fetch;
 pub mod web_search_tool;
 
@@ -94,6 +98,8 @@ pub use shell::ShellTool;
 pub use traits::Tool;
 #[allow(unused_imports)]
 pub use traits::{ToolResult, ToolSpec};
+pub use mcp_client::{McpRegistry, McpServer};
+pub use mcp_tool::McpToolWrapper;
 pub use web_fetch::WebFetchTool;
 pub use web_search_tool::WebSearchTool;
 
