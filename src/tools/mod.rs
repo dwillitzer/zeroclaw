@@ -62,6 +62,10 @@ pub mod task_plan;
 pub mod traits;
 pub mod url_validation;
 pub mod wasm_module;
+pub mod mcp_client;
+pub mod mcp_protocol;
+pub mod mcp_tool;
+pub mod mcp_transport;
 pub mod web_fetch;
 pub mod web_search_tool;
 
@@ -112,6 +116,8 @@ pub use traits::Tool;
 #[allow(unused_imports)]
 pub use traits::{ToolResult, ToolSpec};
 pub use wasm_module::WasmModuleTool;
+pub use mcp_client::{McpRegistry, McpServer};
+pub use mcp_tool::McpToolWrapper;
 pub use web_fetch::WebFetchTool;
 pub use web_search_tool::WebSearchTool;
 
@@ -353,6 +359,16 @@ pub fn all_tools_with_runtime(
             web_fetch_config.max_response_size,
             web_fetch_config.timeout_secs,
             web_fetch_config.user_agent.clone(),
+        )));
+    }
+
+    if web_fetch_config.enabled {
+        tool_arcs.push(Arc::new(WebFetchTool::new(
+            security.clone(),
+            web_fetch_config.allowed_domains.clone(),
+            web_fetch_config.blocked_domains.clone(),
+            web_fetch_config.max_response_size,
+            web_fetch_config.timeout_secs,
         )));
     }
 
