@@ -945,10 +945,7 @@ pub(crate) async fn run_tool_call_loop(
             if let Some(hooks) = hooks {
                 // Pass by value — hook runner takes ownership; Continue returns
                 // the (possibly-mutated) name/args back, Cancel drops them.
-                match hooks
-                    .run_before_tool_call(tool_name, tool_args)
-                    .await
-                {
+                match hooks.run_before_tool_call(tool_name, tool_args).await {
                     crate::hooks::HookResult::Cancel(reason) => {
                         tracing::info!(tool = %call.name, %reason, "tool call cancelled by hook");
                         let cancelled = format!("Cancelled by hook: {reason}");
