@@ -64,6 +64,9 @@ nanohtml2text = "0.2"
 # Zip archive extraction
 zip = { version = "0.6", default-features = false, features = ["deflate"] }
 
+# XML parsing (DOCX text extraction)
+quick-xml = "0.37"
+
 # Optional Rust-native browser automation backend
 fantoccini = { version = "0.22.0", optional = true, default-features = false, features = ["rustls-tls"] }
 
@@ -177,8 +180,8 @@ tempfile = "3.14"
 
 # WASM plugin runtime (optional, enable with --features wasm-tools)
 # Uses WASI stdio protocol — tools read JSON from stdin, write JSON to stdout.
-wasmtime = { version = "28", optional = true, default-features = false, features = ["cranelift", "runtime"] }
-wasmtime-wasi = { version = "28", optional = true, default-features = false, features = ["preview1"] }
+wasmtime = { version = "24.0.6", optional = true, default-features = false, features = ["cranelift", "runtime"] }
+wasmtime-wasi = { version = "24.0.6", optional = true, default-features = false, features = ["preview1"] }
 
 # Terminal QR rendering for WhatsApp Web pairing flow.
 qrcode = { version = "0.14", optional = true }

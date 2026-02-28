@@ -2,7 +2,7 @@
 
 This reference is derived from the current CLI surface (`zeroclaw --help`).
 
-Last verified: **February 25, 2026**.
+Last verified: **February 28, 2026**.
 
 ## Top-Level Commands
 
@@ -58,6 +58,9 @@ Last verified: **February 25, 2026**.
 Tip:
 
 - In interactive chat, you can ask for route changes in natural language (for example “conversation uses kimi, coding uses gpt-5.3-codex”); the assistant can persist this via tool `model_routing_config`.
+- In interactive chat, you can also ask to:
+  - switch web search provider/fallbacks (`web_search_config`)
+  - inspect or update domain access policy (`web_access_config`)
 
 ### `gateway` / `daemon`
 
@@ -116,7 +119,7 @@ Notes:
 - `zeroclaw models refresh --provider <ID>`
 - `zeroclaw models refresh --force`
 
-`models refresh` currently supports live catalog refresh for provider IDs: `openrouter`, `openai`, `anthropic`, `groq`, `mistral`, `deepseek`, `xai`, `together-ai`, `gemini`, `ollama`, `llamacpp`, `sglang`, `vllm`, `astrai`, `venice`, `fireworks`, `cohere`, `moonshot`, `glm`, `zai`, `qwen`, and `nvidia`.
+`models refresh` currently supports live catalog refresh for provider IDs: `openrouter`, `openai`, `anthropic`, `groq`, `mistral`, `deepseek`, `xai`, `together-ai`, `gemini`, `ollama`, `llamacpp`, `sglang`, `vllm`, `astrai`, `venice`, `fireworks`, `cohere`, `moonshot`, `glm`, `zai`, `qwen`, `volcengine` (`doubao`/`ark` aliases), `siliconflow`, and `nvidia`.
 
 ### `doctor`
 
