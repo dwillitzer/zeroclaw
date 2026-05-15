@@ -34,19 +34,37 @@ fn load_openclaw_bootstrap_files(
     if let Some(files) = custom_files {
         // Configurable list from [identity] bootstrap_files
         for filename in files {
-            inject_workspace_file(prompt, workspace_dir, filename, max_chars_per_file, suppress_missing);
+            inject_workspace_file(
+                prompt,
+                workspace_dir,
+                filename,
+                max_chars_per_file,
+                suppress_missing,
+            );
         }
     } else {
         // Default hardcoded list (backwards compatible)
         for filename in DEFAULT_BOOTSTRAP_FILES {
-            inject_workspace_file(prompt, workspace_dir, filename, max_chars_per_file, suppress_missing);
+            inject_workspace_file(
+                prompt,
+                workspace_dir,
+                filename,
+                max_chars_per_file,
+                suppress_missing,
+            );
         }
     }
 
     // BOOTSTRAP.md — only if it exists (first-run ritual)
     let bootstrap_path = workspace_dir.join("BOOTSTRAP.md");
     if bootstrap_path.exists() {
-        inject_workspace_file(prompt, workspace_dir, "BOOTSTRAP.md", max_chars_per_file, suppress_missing);
+        inject_workspace_file(
+            prompt,
+            workspace_dir,
+            "BOOTSTRAP.md",
+            max_chars_per_file,
+            suppress_missing,
+        );
     }
 }
 
@@ -287,7 +305,13 @@ pub fn build_system_prompt_with_mode_and_autonomy(
                 Ok(None) => {
                     // No AIEOS identity loaded — fall back to OpenClaw bootstrap files
                     let max_chars = bootstrap_max_chars.unwrap_or(BOOTSTRAP_MAX_CHARS);
-                    load_openclaw_bootstrap_files(&mut prompt, workspace_dir, max_chars, custom_bootstrap, suppress_missing);
+                    load_openclaw_bootstrap_files(
+                        &mut prompt,
+                        workspace_dir,
+                        max_chars,
+                        custom_bootstrap,
+                        suppress_missing,
+                    );
                 }
                 Err(e) => {
                     // Log error but don't fail - fall back to OpenClaw
@@ -295,13 +319,25 @@ pub fn build_system_prompt_with_mode_and_autonomy(
                         "Warning: Failed to load AIEOS identity: {e}. Using OpenClaw format."
                     );
                     let max_chars = bootstrap_max_chars.unwrap_or(BOOTSTRAP_MAX_CHARS);
-                    load_openclaw_bootstrap_files(&mut prompt, workspace_dir, max_chars, custom_bootstrap, suppress_missing);
+                    load_openclaw_bootstrap_files(
+                        &mut prompt,
+                        workspace_dir,
+                        max_chars,
+                        custom_bootstrap,
+                        suppress_missing,
+                    );
                 }
             }
         } else {
             // OpenClaw format
             let max_chars = bootstrap_max_chars.unwrap_or(BOOTSTRAP_MAX_CHARS);
-            load_openclaw_bootstrap_files(&mut prompt, workspace_dir, max_chars, custom_bootstrap, suppress_missing);
+            load_openclaw_bootstrap_files(
+                &mut prompt,
+                workspace_dir,
+                max_chars,
+                custom_bootstrap,
+                suppress_missing,
+            );
         }
     } else {
         // No identity config - use OpenClaw format with defaults

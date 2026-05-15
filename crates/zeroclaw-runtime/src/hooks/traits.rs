@@ -46,7 +46,8 @@ pub trait HookHandler: Send + Sync {
         _estimated_tokens: usize,
         _max_tokens: usize,
         _usage_ratio: f64,
-    ) {}
+    ) {
+    }
 
     // --- Modifying hooks (sequential by priority, can cancel) ---
     async fn before_model_resolve(
